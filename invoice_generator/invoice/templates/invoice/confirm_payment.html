@@ -1,0 +1,14 @@
+{% extends 'invoice/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Confirm Payment</h2>
+    <p>Are you sure you want to mark Invoice {{ invoice.bill_no }} for {{ invoice.buyer_name }} as paid?</p>
+    <p>Total Amount: ${{ invoice.total_price|floatformat:2 }}</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success">Confirm Payment</button>
+        <a href="{% url 'all_invoices' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

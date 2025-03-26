@@ -1,0 +1,267 @@
+{% extends 'invoice/base.html' %}
+{% load static humanize %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header with Search -->
+    <div class="d-flex flex-column flex-md-row justify-content-md-between align-items-md-center mb-4 gap-3 gap-md-0">
+        <h1 class="text-primary fw-bold mb-3 mb-md-0">Welcome, {{ request.user.username |upper }}!</h1>
+        <form method="get" class="d-flex gap-2 w-100 w-md-auto ms-md-auto" style="max-width: 300px;">
+            <input type="text" name="search" class="form-control" placeholder="Search invoices..." value="{{ search_query }}" aria-label="Search invoices">
+            <button type="submit" class="btn btn-primary" title="Search by customer name, bill #, or email">
+                <i class="bi bi-search"></i>
+            </button>
+        </form>
+    </div>
+
+    <!-- Date Filter with Custom Range -->
+    <div class="mb-4 p-3 rounded shadow-sm">
+        <form method="get" class="d-flex gap-3 align-items-center flex-wrap">
+            <label class="fw-bold me-2">Filter by:</label>
+            <select name="date_filter" class="form-select" style="width: 150px;" onchange="this.form.submit()">
+                <option value="day" {% if date_filter == 'day' %}selected{% endif %}>Today</option>
+                <option value="week" {% if date_filter == 'week' %}selected{% endif %}>Last 7 Days</option>
+                <option value="month" {% if date_filter == 'month' %}selected{% endif %}>Last 30 Days</option>
+                <option value="all" {% if date_filter == 'all' %}selected{% endif %}>All Time</option>
+                <option value="custom" {% if date_filter == 'custom' %}selected{% endif %}>Custom Range</option>
+            </select>
+            {% if date_filter == 'custom' %}
+                <input type="date" name="start_date" class="form-control" value="{{ start_date }}" style="width: 150px;" required>
+                <input type="date" name="end_date" class="form-control" value="{{ end_date }}" style="width: 150px;" required>
+            {% endif %}
+            <button type="submit" class="btn btn-primary">Apply</button>
+            <small class="text-muted ms-2">Showing: {{ applied_filter_label }}</small>
+        </form>
+    </div>
+
+    <!-- Invoice Summary -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <div class="card shadow-sm h-100 bg-primary-gradient">
+                <div class="card-body text-center">
+                    <h5 class="card-title" data-bs-toggle="tooltip" title="{{ summaries.tooltips.total_invoices }}">Total Invoices</h5>
+                    <h3>{{ summaries.invoices.total|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card shadow-sm h-100 bg-success-gradient">
+                <div class="card-body text-center">
+                    <h5 class="card-title" data-bs-toggle="tooltip" title="{{ summaries.tooltips.paid_invoices }}">Paid</h5>
+                    <h3>{{ summaries.invoices.paid|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card shadow-sm h-100 bg-warning-gradient">
+                <div class="card-body text-center">
+                    <h5 class="card-title" data-bs-toggle="tooltip" title="{{ summaries.tooltips.pending_invoices }}">Pending</h5>
+                    <h3>{{ summaries.invoices.pending|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card shadow-sm h-100 bg-danger-gradient">
+                <div class="card-body text-center">
+                    <h5 class="card-title" data-bs-toggle="tooltip" title="{{ summaries.tooltips.overdue_invoices }}">Overdue</h5>
+                    <h3>{{ summaries.invoices.overdue|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Summary -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <div class="card shadow-sm h-100 bg-success-gradient">
+                <div class="card-body text-center">
+                    <h5 class="card-title" data-bs-toggle="tooltip" title="{{ summaries.tooltips.total_payments }}">Total Payments</h5>
+                    <h3>₹{{ summaries.payments.total|floatformat:2|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card shadow-sm h-100 bg-primary-gradient">
+                <div class="card-body text-center">
+                    <h5 class="card-title" data-bs-toggle="tooltip" title="{{ summaries.tooltips.total_estimate }}">Total Estimate</h5>
+                    <h3>₹{{ summaries.payments.estimate|floatformat:2|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card shadow-sm h-100 bg-warning-gradient">
+                <div class="card-body text-center">
+                    <h5 class="card-title" data-bs-toggle="tooltip" title="{{ summaries.tooltips.pending_payments }}">Pending Payments</h5>
+                    <h3>₹{{ summaries.payments.pending|floatformat:2|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card shadow-sm h-100 bg-danger-gradient">
+                <div class="card-body text-center">
+                    <h5 class="card-title" data-bs-toggle="tooltip" title="{{ summaries.tooltips.outstanding_balance }}">Outstanding</h5>
+                    <h3>₹{{ summaries.payments.outstanding|floatformat:2|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts and Recent Invoices -->
+    <div class="row g-4">
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Invoice Trends ({{ applied_filter_label }})</h5>
+                    <canvas id="trendChart" height="150"></canvas>
+                </div>
+            </div>
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Recent Invoices</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Bill #</th>
+                                    <th>Customer</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for invoice in recent_invoices %}
+                                <tr>
+                                    <td>{{ invoice.bill_no }}</td>
+                                    <td>{{ invoice.customer_name }}</td>
+                                    <td>{{ invoice.total_quantity|floatformat:2 }}</td>
+                                    <td>
+                                        {% if invoice.status == 'paid' %}
+                                            <span class="badge bg-success rounded-pill ms-2">Paid</span>
+                                        {% elif invoice.status == 'overdue' %}
+                                            <span class="badge bg-danger rounded-pill ms-2">Overdue</span>
+                                        {% else %}
+                                            <span class="badge bg-warning rounded-pill ms-2">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>₹{{ invoice.total_price|floatformat:2|intcomma }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="5" class="text-muted">No recent invoices found.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Revenue ({{ applied_filter_label }})</h5>
+                    <h3 class="text-primary mb-3">₹{{ summaries.revenue|floatformat:2|intcomma }}</h3>
+                    <canvas id="revenueChart" height="200"></canvas>
+                </div>
+            </div>
+            <div class="card shadow-sm mt-4">
+                <div class="card-body">
+                    <h5 class="card-title">Yesterday Overdue ({{ yesterday_overdue.count }})</h5>
+                    {% if yesterday_overdue %}
+                        <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Bill #</th>
+                                        <th>Customer</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for invoice in yesterday_overdue %}
+                                    <tr>
+                                        <td>{{ invoice.bill_no }}</td>
+                                        <td>{{ invoice.customer_name }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <form method="post" action="{% url 'send_overdue_email' %}" class="mt-3">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm" data-bs-toggle="tooltip" title="Send overdue reminder emails to all customers">
+                                <i class="bi bi-envelope"></i> Send All Emails
+                            </button>
+                        </form>
+                    {% else %}
+                        <p class="text-muted">No invoices overdue from yesterday.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Access Buttons -->
+    <div class="mt-4 text-center">
+        <a href="{% url 'invoice_create' %}" class="btn btn-primary btn me-2" data-bs-toggle="tooltip" title="Create a new invoice">
+            <i class="bi bi-plus-circle"></i> New Invoice
+        </a>
+        <a href="{% url 'all_invoices' %}" class="btn btn-outline-primary btn me-2" data-bs-toggle="tooltip" title="View and manage all invoices">
+            <i class="bi bi-list-ul"></i> Manage Invoices
+        </a>
+        <a href="{% url 'reports' %}" class="btn btn-outline-primary btn" data-bs-toggle="tooltip" title="Generate detailed reports">
+            <i class="bi bi-bar-chart"></i> Reports
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- JSON Data -->
+{{ trend_labels|json_script:"trend_labels" }}
+{{ trend_data.pending|json_script:"pending_data" }}
+{{ trend_data.paid|json_script:"paid_data" }}
+{{ trend_data.overdue|json_script:"overdue_data" }}
+{{ revenue_labels|json_script:"revenue_labels" }}
+{{ revenue_data|json_script:"revenue_data" }}
+
+<!-- Scripts -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize tooltips
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+        // Trend Chart
+        const trendChart = new Chart(document.getElementById('trendChart'), {
+            type: 'line',
+            data: {
+                labels: JSON.parse(document.getElementById('trend_labels').textContent),
+                datasets: [
+                    { label: 'Pending', data: JSON.parse(document.getElementById('pending_data').textContent), borderColor: '#ffc107', fill: false },
+                    { label: 'Paid', data: JSON.parse(document.getElementById('paid_data').textContent), borderColor: '#28a745', fill: false },
+                    { label: 'Overdue', data: JSON.parse(document.getElementById('overdue_data').textContent), borderColor: '#dc3545', fill: false }
+                ]
+            },
+            options: {
+                scales: { y: { beginAtZero: true } },
+                plugins: { legend: { position: 'top' } }
+            }
+        });
+
+        // Revenue Chart
+        const revenueChart = new Chart(document.getElementById('revenueChart'), {
+            type: 'bar',
+            data: {
+                labels: JSON.parse(document.getElementById('revenue_labels').textContent),
+                datasets: [{ label: 'Revenue (₹)', data: JSON.parse(document.getElementById('revenue_data').textContent), backgroundColor: '#007bff' }]
+            },
+            options: {
+                scales: { y: { beginAtZero: true } },
+                plugins: { legend: { display: false } }
+            }
+        });
+    });
+</script>
+{% endblock %}

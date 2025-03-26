@@ -1,0 +1,132 @@
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap');
+
+
+body{
+    font-family: "Ubuntu" !important;
+    font-weight: 400 !important;
+    font-style: normal !important;
+}
+
+#invoice-text {
+    font-size: 1.2rem;
+    margin-bottom: 0; 
+}
+
+
+@media (max-width: 768px) {
+    #invoice-text {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    #invoice-text {
+        font-size: 0.9rem; 
+    }
+}
+
+
+.navbar-brand {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+}
+
+.navbar-brand img {
+    max-height: 30px;
+    width: auto;
+}
+
+
+/* Toast msg */
+.toast {
+    background-color: rgba(255, 255, 255, 0.1); 
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white !important; 
+}
+
+/* Using Bootstrap background classes with slight opacity tweak */
+.toast-success {
+    background-color: rgba(var(--bs-success-rgb), 0.85) !important;
+}
+
+.toast-error {
+    background-color: rgba(var(--bs-danger-rgb), 0.85) !important;
+}
+
+.toast-warning {
+    background-color: rgba(var(--bs-warning-rgb), 0.85) !important;
+}
+
+.toast-body {
+    background-color: rgba(255, 0, 0, 0.05); 
+    backdrop-filter: blur(5px);
+    color: white !important; 
+    border-top: 1px solid rgba(255, 255, 255, 0.1); 
+}
+
+.toast-header {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    color: white !important; /* White text color */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important; 
+    font-weight: bold;
+}
+
+.btn-close {
+    color: white !important;
+}
+
+
+/* Side bar for mobile */
+.sidebar {
+    height: 100%;
+    width: 0;
+    position: fixed;
+    z-index: 1000;
+    top: 0;
+    right: 0;
+    background-color: #212529;
+    overflow-x: hidden;
+    transition: 0.3s;
+    padding-top: 60px;
+}
+
+.sidebar .nav-link {
+    padding: 8px 8px 8px 32px;
+    color: rgba(255, 255, 255, 0.8);
+    display: block;
+}
+
+.sidebar .nav-link:hover {
+    color: #fff;
+}
+
+.sidebar .close-btn {
+    position: absolute;
+    top: 0;
+    left: 25px;
+    font-size: 36px;
+    margin-right: 50px;
+    color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991px) {
+    .navbar-collapse-desktop {
+        display: none;
+    }
+}
+
+@media (min-width: 992px) {
+    .mobile-menu-btn {
+        display: none;
+    }
+    .sidebar {
+        display: none;
+    }
+}
+
+
+

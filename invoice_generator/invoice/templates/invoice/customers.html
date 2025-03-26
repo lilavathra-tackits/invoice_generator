@@ -1,0 +1,103 @@
+{% extends 'invoice/base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Main Heading -->
+    <h2 class="text-teal text-center mb-4">
+        <i class="bi bi-people-fill me-2"></i>Manage Customers
+    </h2>
+
+    <!-- Form to Add/Edit Customer -->
+    <h4 class="text-purple mb-3">
+        <i class="bi bi-person-plus-fill me-2"></i>
+        {% if editing_customer %}
+            Edit Customer
+        {% else %}
+            Add New Customer
+        {% endif %}
+    </h4>
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="POST">
+                {% csrf_token %}
+                {% if editing_customer %}
+                    <input type="hidden" name="customer_id" value="{{ editing_customer.id }}">
+                {% endif %}
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-label">Name</label>
+                        {{ form.name }}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="{{ form.emailid.id_for_label }}" class="form-label">Email</label>
+                        {{ form.emailid }}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="{{ form.address.id_for_label }}" class="form-label">Address</label>
+                        {{ form.address }}
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    {% if editing_customer %}
+                        Update Customer
+                    {% else %}
+                        Save Customer
+                    {% endif %}
+                </button>
+                {% if editing_customer %}
+                    <a href="{% url 'customers' %}" class="btn btn-light-blue">Cancel</a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- List of Existing Customers -->
+    <h4 class="text-purple mb-3">
+        <i class="bi bi-person-lines-fill me-2"></i>Existing Customers
+    </h4>
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="bg-purple">
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Address</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for customer in customers %}
+                        <tr>
+                            <td>{{ customer.name }}</td>
+                            <td>{{ customer.emailid }}</td>
+                            <td>
+                                {% if customer.address|length > 15 %}
+                                    {{ customer.address|slice:":15" }}...
+                                {% else %}
+                                    {{ customer.address }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'customers' %}?edit={{ customer.id }}" class="btn btn-sm btn-warning">
+                                    <i class="bi bi-pencil-square"></i> Edit
+                                </a>
+                                <a href="{% url 'customers' %}?delete={{ customer.id }}" class="btn btn-sm btn-danger" 
+                                   onclick="return confirm('Are you sure you want to delete this customer?')">
+                                    <i class="bi bi-trash"></i> Delete
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-muted text-center">No customers found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

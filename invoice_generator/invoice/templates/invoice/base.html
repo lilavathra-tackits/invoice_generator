@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TACKITS INVOICE GENERATOR</title>
+    {% load static %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        /* Theme Variables */
+        :root, [data-bs-theme="light"] {
+            --primary-gradient-start: #a18cd1;
+            --primary-gradient-end: #fbc2eb;
+            --success-gradient-start: #00c4b4;
+            --success-gradient-end: #7ee8fa;
+            --warning-gradient-start: #f6d365;
+            --warning-gradient-end: #fda085;
+            --danger-gradient-start: #ff9a9e;
+            --danger-gradient-end: #fad0c4;
+            --sidebar-bg: #f8f9fa;
+            --main-bg: #f4f5f7;
+            --text-muted: #6c757d;
+            --card-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        [data-bs-theme="dark"] {
+            --primary-gradient-start: #a18cd1;
+            --primary-gradient-end: #fbc2eb;
+            --success-gradient-start: #00c4b4;
+            --success-gradient-end: #7ee8fa;
+            --warning-gradient-start: #f6d365;
+            --warning-gradient-end: #fda085;
+            --danger-gradient-start: #ff9a9e;
+            --danger-gradient-end: #fad0c4;
+            --sidebar-bg: #2c2f33;
+            --main-bg: #212529;
+            --text-muted: rgb(255, 255, 255);
+            --card-shadow: 0 4px 10px rgba(255, 255, 255, 0.1);
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 250px;
+            background-color: var(--sidebar-bg);
+            padding-top: 20px;
+            z-index: 10000;
+            transition: width 0.3s ease;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar.collapsed {
+            width: 0;
+        }
+        .sidebar .logo-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .sidebar .logo-container img {
+            max-height: 30px;
+            width: auto;
+        }
+        .sidebar .nav-link {
+            color: var(--text-muted);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            color: #007bff;
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        .sidebar .nav-link i {
+            margin-right: 10px;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            min-height: 100vh;
+            background-color: var(--main-bg);
+            transition: margin-left 0.3s ease;
+        }
+        .main-content.collapsed {
+            margin-left: 0;
+        }
+
+        /* Navbar */
+        .navbar {
+            margin-left: 250px;
+            background-color: #fff !important;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: margin-left 0.3s ease;
+            z-index: 1000;
+        }
+        .navbar.collapsed {
+            margin-left: 0;
+        }
+        [data-bs-theme="dark"] .navbar {
+            background-color: #343a40 !important;
+        }
+        .navbar-brand {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #712cf9;
+        }
+        .navbar .bd-mode-toggle .btn-bd-primary {
+            background-color: transparent;
+            border: none;
+            color: #712cf9;
+            padding: 0.5rem;
+        }
+        .navbar .bd-mode-toggle .btn-bd-primary:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        [data-bs-theme="dark"] .navbar .bd-mode-toggle .btn-bd-primary {
+            color: #fff;
+        }
+        [data-bs-theme="dark"] .navbar .bd-mode-toggle .btn-bd-primary:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        [data-bs-theme="dark"] .navbar .bd-mode-toggle .bi {
+            fill: #fff !important;
+        }
+
+        /* Notification Icon and Dropdown */
+        .navbar .notification-icon {
+            color: #712cf9;
+            font-size: 1.5rem;
+            margin-right: 10px;
+            position: relative;
+            cursor: pointer;
+        }
+        [data-bs-theme="dark"] .navbar .notification-icon {
+            color: #fff;
+        }
+        .navbar .notification-icon .badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            font-size: 0.6rem;
+            padding: 2px 5px;
+        }
+        .notification-dropdown .dropdown-menu {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        .notification-dropdown .dropdown-item {
+            white-space: normal;
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+        .notification-dropdown .dropdown-item.warning {
+            background-color: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
+        }
+        .notification-dropdown .btn-send-all {
+            background-color: #712cf9;
+            border-color: #712cf9;
+            color: #fff;
+            margin-top: 10px;
+            width: 100%;
+            text-align: center;
+            border-radius: 5px;
+            padding: 8px;
+            font-size: 0.9rem;
+            border: none;
+        }
+        .notification-dropdown .btn-send-all:hover {
+            background-color: #5a23c8;
+            border-color: #5a23c8;
+        }
+
+        /* Toast Container */
+        .toast-container {
+            z-index: 1050;
+        }
+
+        /* Cards */
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
+        }
+        .card-body {
+            padding: 20px;
+        }
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+        .card h3 {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .bg-primary-gradient {
+            background: linear-gradient(45deg, var(--primary-gradient-start), var(--primary-gradient-end));
+            color: #fff !important;
+        }
+        .bg-success-gradient {
+            background: linear-gradient(45deg, var(--success-gradient-start), var(--success-gradient-end));
+            color: #fff !important;
+        }
+        .bg-warning-gradient {
+            background: linear-gradient(45deg, var(--warning-gradient-start), var(--warning-gradient-end));
+            color: #fff !important;
+        }
+        .bg-danger-gradient {
+            background: linear-gradient(45deg, var(--danger-gradient-start), var(--danger-gradient-end));
+            color: #fff !important;
+        }
+        .table th, .table td {
+            padding: 12px;
+            vertical-align: middle;
+        }
+        .table th {
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+        .btn-primary {
+            background-color: #712cf9;
+            border-color: #712cf9;
+        }
+        .btn-primary:hover {
+            background-color: #5a23c8;
+            border-color: #5a23c8;
+        }
+        .Buy {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #f1c40f;
+            color: #000;
+            font-weight: bold;
+            border-radius: 25px;
+            padding: 10px 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            text-decoration: none;
+            z-index: 1000;
+        }
+        .Buy i {
+            margin-right: 5px;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 991px) {
+            .sidebar {
+                width: 0;
+            }
+            .sidebar.active {
+                width: 250px;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .navbar {
+                margin-left: 0;
+            }
+        }
+        @media (min-width: 992px) {
+            .sidebar {
+                width: 250px;
+            }
+            .main-content {
+                margin-left: 250px;
+            }
+            .navbar {
+                margin-left: 250px;
+            }
+            .navbar-toggler {
+                display: none;
+            }
+        }
+
+        /* Login/Signup Page Specific Styles */
+        .login-signup-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: var(--main-bg);
+        }
+        .login-signup-card {
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
+            background-color: #fff;
+        }
+        [data-bs-theme="dark"] .login-signup-card {
+            background-color: #343a40;
+        }
+
+        /* New Color Classes from Palette */
+    .bg-purple {
+        background-color: #A05AFF !important;
+        color: #fff !important;
+    }
+    .bg-teal {
+        background-color: #1BCFB4 !important;
+        color: #fff !important;
+    }
+    .bg-light-blue {
+        background-color: #4BCBEB !important;
+        color: #fff !important;
+    }
+
+    .bg-light-purple {
+        background-color: #9E58FF !important;
+        color: #fff !important;
+    }
+    /* Text Color Classes */
+    .text-purple {
+        color: #A05AFF !important;
+    }
+    .text-teal {
+        color: #1BCFB4 !important;
+    }
+    /* Button Color Classes */
+    .btn-teal {
+        background-color: #1BCFB4 !important;
+        border-color: #1BCFB4 !important;
+        color: #fff !important;
+    }
+    .btn-teal:hover {
+        background-color: #17B29A !important; /* Slightly darker shade */
+        border-color: #17B29A !important;
+    }
+    .btn-light-blue {
+        background-color: #4BCBEB !important;
+        border-color: #4BCBEB !important;
+        color: #fff !important;
+    }
+    .btn-light-blue:hover {
+        background-color: #3AB8D8 !important; /* Slightly darker shade */
+        border-color: #3AB8D8 !important;
+    }
+    .btn-light-purple {
+        background-color: #9E58FF !important;
+        border-color: #9E58FF !important;
+        color: #fff !important;
+    }
+    .btn-light-purple:hover {
+        background-color: #8A45E6 !important; /* Slightly darker shade */
+        border-color: #8A45E6 !important;
+    }
+
+    select{
+        z-index: 1000;
+    }
+    </style>
+</head>
+<body>
+    <!-- Sidebar (Only show if authenticated and not on login/signup pages) -->
+    {% if user.is_authenticated and request.path != '/login/' and request.path != '/signup/' %}
+    <div class="sidebar" id="sidebar">
+        {% if shop_details and shop_details.logo and shop_details.logo.url %}
+        <div class="logo-container">
+            <img src="{{ shop_details.logo.url }}" alt="Shop Logo" width="30" style="max-height: 80px;" onerror="this.style.display='none';">
+        </div>
+        {% endif %}
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'dashboard' %}">
+                    <i class="bi bi-house-door"></i> Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.path == '/create/' %}active{% endif %}" href="{% url 'invoice_create' %}">
+                    <i class="bi bi-file-earmark-plus"></i> Create Invoices
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.path == '/invoices/' %}active{% endif %}" href="{% url 'all_invoices' %}">
+                    <i class="bi bi-files"></i> All Invoices
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.path == '/products/' %}active{% endif %}" href="{% url 'products' %}">
+                    <i class="bi bi-box"></i> All Products
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.path == '/customers/' %}active{% endif %}" href="{% url 'customers' %}">
+                    <i class="bi bi-person-plus"></i> Add Customers
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.path == '/add-employee/' %}active{% endif %}" href="{% url 'add_employee' %}">
+                    <i class="bi bi-person-square"></i> Add Employee
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.path == '/shop-details/' %}active{% endif %}" href="{% url 'shop_details' %}">
+                    <i class="bi bi-shop"></i> Account
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'logout' %}">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </a>
+            </li>
+        </ul>
+    </div>
+    {% endif %}
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <button class="navbar-toggler" type="button" onclick="toggleSidebar()" {% if request.path == '/login/' or request.path == '/signup/' %}style="display: none;"{% endif %}>
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="{% url 'dashboard' %}"><p class="text-nowrap b-3" id="invoice-text">TACKITS INVOICE</p></a>
+            <div class="ms-auto d-flex align-items-center">
+                <!-- Notification Icon with Dropdown -->
+                <div class="notification-dropdown dropdown">
+                    <a class="notification-icon" href="#" role="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-envelope"></i>
+                        {% if yesterday_overdue.count > 0 %}
+                        <span class="badge bg-danger">{{ yesterday_overdue.count }}</span>
+                        {% endif %}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow notification-dropdown" aria-labelledby="notificationDropdown">
+                        {% if yesterday_overdue.count > 0 %}
+                        <li>
+                            <div class="dropdown-item warning">
+                                You have {{ yesterday_overdue.count }} overdue invoice{{ yesterday_overdue.count|pluralize }} from yesterday. Go and remind them.
+                            </div>
+                        </li>
+                        <li>
+                            <form method="post" action="{% url 'send_overdue_email' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-send-all">
+                                    <i class="bi bi-envelope me-2"></i>Send All
+                                </button>
+                            </form>
+                        </li>
+                        {% else %}
+                        <li><div class="dropdown-item">No overdue invoices from yesterday.</div></li>
+                        {% endif %}
+                    </ul>
+                </div>
+                {% comment %} Theme switcher svg {% endcomment %}
+                <svg xmlns="http://www.w3.org/2000/svg" class="d-none">
+                    <symbol id="check2" viewBox="0 0 16 16">
+                        <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+                    </symbol>
+                    <symbol id="circle-half" viewBox="0 0 16 16">
+                        <path d="M8 15A7 7 0 1 0 8 1v14zm0 1A8 8 0 1 1 8 0a8 8 0 0 1 0 16z"/>
+                    </symbol>
+                    <symbol id="moon-stars-fill" viewBox="0 0 16 16">
+                        <path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278z"/>
+                        <path d="M10.794 3.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387a1.734 1.734 0 0 0-1.097 1.097l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162A1.734 1.734 0 0 0 9.31 6.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387a1.734 1.734 0 0 0 1.097-1.097l.387-1.162zM13.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.156 1.156 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.156 1.156 0 0 0-.732-.732l-.774-.258a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732L13.863.1z"/>
+                    </symbol>
+                    <symbol id="sun-fill" viewBox="0 0 16 16">
+                        <path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708z"/>
+                    </symbol>
+                </svg>
+                {% comment %} Theme switcher {% endcomment %}
+                <div class="dropdown bd-mode-toggle">
+                    <button class="btn btn-bd-primary py-2 dropdown-toggle d-flex align-items-center"
+                            id="bd-theme"
+                            type="button"
+                            aria-expanded="false"
+                            data-bs-toggle="dropdown"
+                            aria-label="Toggle theme (auto)">
+                        <svg class="bi my-1 theme-icon-active" width="1.5em" height="1.5em"><use href="#circle-half"></use></svg>
+                        <span class="visually-hidden" id="bd-theme-text">Toggle theme</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="bd-theme-text">
+                        <li>
+                            <button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="light" aria-pressed="false">
+                                <svg class="bi me-2 opacity-50" width="1em" height="1em"><use href="#sun-fill"></use></svg>
+                                Light
+                                <svg class="bi ms-auto d-none" width="1em" height="1em"><use href="#check2"></use></svg>
+                            </button>
+                        </li>
+                        <li>
+                            <button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="dark" aria-pressed="false">
+                                <svg class="bi me-2 opacity-50" width="1em" height="1em"><use href="#moon-stars-fill"></use></svg>
+                                Dark
+                                <svg class="bi ms-auto d-none" width="1em" height="1em"><use href="#check2"></use></svg>
+                            </button>
+                        </li>
+                        <li>
+                            <button type="button" class="dropdown-item d-flex align-items-center active" data-bs-theme-value="auto" aria-pressed="true">
+                                <svg class="bi me-2 opacity-50" width="1em" height="1em"><use href="#circle-half"></use></svg>
+                                Auto
+                                <svg class="bi ms-auto d-none" width="1em" height="1em"><use href="#check2"></use></svg>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    {% comment %} Main Content {% endcomment %}
+    <div class="main-content {% if request.path == '/login/' or request.path == '/signup/' %}collapsed{% endif %}" id="main-content">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    {% comment %} Upgrade to Pro Button {% endcomment %}
+    <a href="#" class="Buy">
+        <i class="bi bi-crown"></i> Subscription Ends in ###
+    </a>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="toast {% if 'success' in message.tags %}toast-success{% elif 'error' in message.tags %}toast-error{% elif 'warning' in message.tags %}toast-warning{% endif %}" 
+                     role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="2000">
+                    <div class="toast-header">
+                        <strong class="me-auto">
+                            {% if 'success' in message.tags %}
+                                Success
+                            {% elif 'error' in message.tags %}
+                                Error
+                            {% elif 'warning' in message.tags %}
+                                Warning
+                            {% else %}
+                                Info
+                            {% endif %}
+                        </strong>
+                        <button type="button" class="btn-close bg-light" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body">
+                        {{ message }}
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Bootstrap CSS and JS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap Select CSS and JS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.14.0-beta3/css/bootstrap-select.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.14.0-beta3/js/bootstrap-select.min.js"></script>
+    <!-- Load Bootstrap CSS and JS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{% static '/js/color-modes.js' %}"></script>
+    <script src="{% static '/js/create_invoice.js' %}"></script>
+    <script src="{% static '/js/products.js' %}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize toasts
+            var toastElements = document.querySelectorAll('.toast');
+            toastElements.forEach(function(toastEl) {
+                var toast = new bootstrap.Toast(toastEl);
+                toast.show();
+            });
+
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function(tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Sidebar and Navbar toggle logic
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            const navbar = document.querySelector('.navbar');
+
+            // Set initial state based on screen size and page
+            if ('{{ request.path }}' === '/login/' || '{{ request.path }}' === '/signup/') {
+                if (sidebar) sidebar.classList.add('collapsed');
+                mainContent.classList.add('collapsed');
+                navbar.classList.add('collapsed');
+            } else {
+                if (window.innerWidth >= 992) {
+                    if (sidebar) sidebar.classList.remove('collapsed');
+                    mainContent.classList.remove('collapsed');
+                    navbar.classList.remove('collapsed');
+                } else {
+                    if (sidebar) sidebar.classList.add('collapsed');
+                    mainContent.classList.add('collapsed');
+                    navbar.classList.add('collapsed');
+                }
+            }
+
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                if ('{{ request.path }}' === '/login/' || '{{ request.path }}' === '/signup/') {
+                    return; // Do nothing on login/signup pages
+                }
+                if (window.innerWidth >= 992) {
+                    if (sidebar) sidebar.classList.remove('collapsed');
+                    mainContent.classList.remove('collapsed');
+                    navbar.classList.remove('collapsed');
+                } else if (!sidebar || !sidebar.classList.contains('active')) {
+                    if (sidebar) sidebar.classList.add('collapsed');
+                    mainContent.classList.add('collapsed');
+                    navbar.classList.add('collapsed');
+                }
+            });
+        });
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            const navbar = document.querySelector('.navbar');
+
+            if (sidebar) {
+                sidebar.classList.toggle('collapsed');
+                sidebar.classList.toggle('active');
+            }
+            mainContent.classList.toggle('collapsed');
+            navbar.classList.toggle('collapsed');
+        }
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,195 @@
+{% extends 'invoice/base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Main Heading -->
+    <h2 class="text-teal text-center mb-4">
+        {% if mode == 'edit' %}
+            <i class="bi bi-pencil-square me-2"></i>Edit Invoice: <span style="color:#A05AFF">{{ invoice.customer_name }}</span>
+        {% else %}
+            <i class="bi bi-file-earmark-plus me-2"></i>Create Invoice
+        {% endif %}
+    </h2>
+
+    <!-- Create or Edit Form -->
+    <form method="POST" id="invoiceForm" onsubmit="return validateForm()">
+        {% csrf_token %}
+        {{ formset.management_form }}
+        <input type="hidden" name="action" id="form-action" value="">
+
+        <!-- Details Section -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h4 class="text-purple mb-3">
+                    <i class="bi bi-info-circle-fill me-2"></i>Details
+                </h4>
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Sequence</label>
+                        <input type="text" class="form-control" value="2025" readonly>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Number</label>
+                        <input type="text" class="form-control" 
+                               value="{% if mode == 'edit' %}{{ invoice.bill_no }}{% else %}{{ next_bill_no }}{% endif %}" readonly>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Create Date</label>
+                        {{ invoice_form.date }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Due Date</label>
+                        {{ invoice_form.due_date }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Customer</label>
+                        <select name="customer" class="form-control selectpicker" id="id_customer" data-live-search="true">
+                            {% for customer in customers %}
+                                <option value="{{ customer.id }}" {% if invoice.customer.id == customer.id %}selected{% endif %}>
+                                    {{ customer.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Transport</label>
+                        {{ invoice_form.transport }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Status</label>
+                        {{ invoice_form.status }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Section -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h4 class="text-purple mb-3">
+                    <i class="bi bi-cart-fill me-2"></i>Order
+                </h4>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="bg-purple">
+                            <tr>
+                                <th>Product*</th>
+                                <th>Quantity*</th>
+                                <th>Unit</th>
+                                <th>Unit Price</th>
+                                <th>Discount (%)</th>
+                                <th>Amount</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="item-table">
+                            {% for form in formset %}
+                            <tr class="item-row">
+                                {{ form.id }}
+                                <td>{{ form.product }}</td>
+                                <td>{{ form.quantity }}</td>
+                                <td>{{ form.unit }}</td>
+                                <td class="rate">{{ form.instance.rate|default:"0.00" }}</td>
+                                <td>{{ form.discount }}</td>
+                                <td class="amount">{{ form.instance.amount|default:"0.00" }}</td>
+                                <td>
+                                    {% if not forloop.first %}
+                                    <button type="button" class="btn btn-danger btn-sm" onclick="removeItemRow(this)">-</button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="1"><strong>Total</strong></td>
+                                <td id="total-quantity">{% if mode == 'edit' %}{{ invoice.total_quantity }}{% else %}0{% endif %}</td>
+                                <td colspan="2"></td>
+                                <td><strong>Total Price</strong></td>
+                                <td id="total-price">{% if mode == 'edit' %}{{ invoice.total_price }}{% else %}0{% endif %}</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Buttons Section -->
+                <div class="d-flex align-items-center mt-3">
+                    <button type="button" class="btn btn-success me-2" onclick="addItemRow()">
+                        <i class="bi bi-plus-square"></i> Add Item
+                    </button>
+                    {% if mode == 'edit' %}
+                        <button type="submit" class="btn btn-primary me-2" onclick="setAction('save')">
+                            <i class="bi bi-floppy"></i> Save
+                        </button>
+                        <button type="submit" class="btn btn-danger" onclick="setAction('exit')">
+                            <i class="bi bi-box-arrow-left"></i> Exit
+                        </button>
+                    {% else %}
+                        <button type="submit" class="btn btn-primary me-2" onclick="setAction('save')">
+                            <i class="bi bi-file-earmark-plus"></i> Create Invoice
+                        </button>
+                        <button type="submit" class="btn btn-danger" onclick="setAction('exit')">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+
+
+<!-- Add rows and calculations -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tableBody = document.getElementById('item-table');
+        if (!tableBody.querySelector('tr')) {
+            console.log("No rows found on load, adding a default row.");
+            addDefaultRow();
+        } else {
+            updateAllRows();
+        }
+    });
+
+    // Add item row
+    function addItemRow() {
+        let table = document.getElementById('item-table');
+        let newRow = table.insertRow();
+    }
+
+    // Remove item row
+    function removeItemRow(button) {
+        let row = button.closest('tr');
+        row.remove();
+        updateAllRows();
+    }
+
+    // Update rows with calculations and data
+    function updateAllRows() {
+        let totalQuantity = 0;
+        let totalPrice = 0;
+
+        let rows = document.querySelectorAll('#item-table .item-row');
+        rows.forEach(function(row) {
+            let quantity = parseFloat(row.querySelector('.quantity').value) || 0;
+            let unitPrice = parseFloat(row.querySelector('.rate').textContent) || 0;
+            let discount = parseFloat(row.querySelector('.discount').value) || 0;
+
+            let amount = quantity * unitPrice * (1 - discount / 100);
+            row.querySelector('.amount').textContent = amount.toFixed(2);
+
+            totalQuantity += quantity;
+            totalPrice += amount;
+        });
+
+        document.getElementById('total-quantity').textContent = totalQuantity.toFixed(2);
+        document.getElementById('total-price').textContent = totalPrice.toFixed(2);
+    }
+</script>
+
+
+{% endblock %}

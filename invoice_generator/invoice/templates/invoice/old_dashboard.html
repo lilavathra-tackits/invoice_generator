@@ -1,0 +1,35 @@
+{% extends 'invoice/base.html' %}
+
+{% block content %}
+
+    {% if shop_details %}
+        <h1>Welcome to {{ shop_details.shop_name }} 🛒</h1>
+    {% else %}
+        <h1>Welcome</h1>
+        <p>No shop details found. Please set up your shop in 
+            <a href="{% url 'shop_details' %}">Shop Details</a>.</p>
+            
+    {% endif %}
+    <p>Manage your shop details, products, and invoices here.</p>
+
+    <div class="row">
+        <div class="col-sm-6">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">Create Invoices</h5>
+              <p class="card-text">You can Create Invoices</p>
+              <a href="{% url 'invoice_create' %}" class="btn btn-primary mb-3"><i class="bi bi-file-earmark-plus"></i> Create New Invoice</a>  
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">Add Customer</h5>
+              <p class="card-text">You can Add Customers</p>
+              <a href="{% url 'invoice_create' %}" class="btn btn-primary mb-3"><i class="bi bi-file-earmark-plus"></i> Create New Invoice</a>  
+            </div>
+          </div>
+        </div>
+      </div>
+{% endblock %}
