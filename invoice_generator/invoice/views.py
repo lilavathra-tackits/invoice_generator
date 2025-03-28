@@ -13,18 +13,16 @@ from django.db import models
 from django.core.paginator import Paginator
 from datetime import datetime, timedelta
 from django.db.models import Sum, Count, Q
-from django.db.models.functions import TruncDay
+from django.db.models.functions import TruncDay, TruncMonth
 from django.utils import timezone
 import bleach
+import csv
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.db import DatabaseError
 from django.http import Http404
 from django.db import transaction
 from django.urls import reverse
 from django.contrib.auth.password_validation import validate_password
-
-
-# Email
 from django.core.mail import EmailMessage
 from django.core.mail.backends.smtp import EmailBackend
 
@@ -525,7 +523,7 @@ def delete_invoice(request, id):
 # Reports view (Both admin and employee)
 @login_required
 def reports(request):
-    """Generate invoice reports with filtering."""
+    """Generate advanced invoice reports with filtering and export options."""
     if request.user.role == 'employee':
         shop_owner = request.user.shop_owner
         if not shop_owner:
@@ -535,32 +533,81 @@ def reports(request):
     else:
         invoices = Invoice.objects.filter(user=request.user)
 
+    shop_details = ShopDetails.objects.filter(user=request.user).first()
+
+    # Filters
     search_query = request.GET.get('search', '')
     start_date = request.GET.get('start_date', '')
     end_date = request.GET.get('end_date', '')
+    report_type = request.GET.get('report_type', 'revenue_by_customer')
+    export_format = request.GET.get('export', None)
 
     if search_query:
-        invoices = invoices.filter(customer_name__icontains=search_query)
-
+        invoices = invoices.filter(
+            Q(customer_name__icontains=search_query) |
+            Q(bill_no__icontains=search_query)
+        )
     if start_date:
         invoices = invoices.filter(date__gte=start_date)
     if end_date:
         invoices = invoices.filter(date__lte=end_date)
 
-    paginator = Paginator(invoices, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    # Report Data
+    context = {'shop_details': shop_details, 'report_type': report_type}
 
-    shop_details = ShopDetails.objects.filter(user=request.user).first()
+    if report_type == 'revenue_by_customer':
+        context['report_title'] = 'Revenue by Customer'
+        context['data'] = (
+            invoices.values('customer__name')
+            .annotate(total_revenue=Sum('total_price'), invoice_count=Count('id'))
+            .order_by('-total_revenue')
+        )
 
-    context = {
-        'invoices': page_obj,
-        'page_obj': page_obj,
+    elif report_type == 'top_products':
+        context['report_title'] = 'Top-Selling Products'
+        context['data'] = (
+            InvoiceItem.objects.filter(invoice__user=shop_owner if request.user.role == 'employee' else request.user)
+            .values('product__name')
+            .annotate(total_sold=Sum('quantity'), total_revenue=Sum('amount'))
+            .order_by('-total_revenue')
+        )
+
+    # Export Options
+    if export_format == 'csv':
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{report_type}_report.csv"'
+        writer = csv.writer(response)
+
+        if report_type == 'revenue_by_customer':
+            writer.writerow(['Customer', 'Total Revenue', 'Invoice Count'])
+            for item in context['data']:
+                writer.writerow([item['customer__name'], f"{item ['total_revenue']}", item['invoice_count']])
+
+        elif report_type == 'top_products':
+            writer.writerow(['Product', 'Total Sold', 'Total Revenue'])
+            for item in context['data']:
+                writer.writerow([item['product__name'], item ['total_sold'], f"{item ['total_revenue']}"])
+
+        return response
+
+    elif export_format == 'pdf':
+        try:
+            html_content = render_to_string('invoice/advanced_report_pdf.html', context)
+            pdf = HTML(string=html_content, base_url=request.build_absolute_uri('/')).write_pdf()
+            response = HttpResponse(pdf, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{report_type}_report.pdf"'
+            return response
+        except Exception as e:
+            messages.error(request, f"PDF generation failed: {str(e)}")
+            return redirect('reports')
+
+    # Add filter values to context
+    context.update({
         'search_query': search_query,
         'start_date': start_date,
         'end_date': end_date,
         'shop_details': shop_details,
-    }
+    })
     return render(request, 'invoice/reports.html', context)
 
 # Dashboard (Both admin and employee)
