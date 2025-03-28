@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Estimate - {{ shop.shop_name }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; }
+        .estimate-container { width: 190mm; margin: 0; padding: 0; border: 1px solid #000; box-sizing: border-box; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #000; padding: 8px; font-size: 14px; vertical-align: top; }
+        th { background-color: #f2f2f2; text-align: center; }
+        .no-bottom-border { border-bottom: none; }
+        .no-top-border { border-top: none; }
+        .header-row td { text-align: center; font-weight: bold; font-size: 20px; border-bottom: 1px solid #000; border-left: none; border-right: none; border-top: none; }
+        .details-row .party-details { text-align: left; }
+        .details-row .bill-details { text-align: right; }
+        .footer-table { width: 100%; border-collapse: collapse; margin-top: 20px; border-left: none; border-right: none; }
+        .footer-table td { border: 1px solid #000; padding: 8px; }
+        .footer-table .total-qty { text-align: left; }
+        .footer-table .total-amount { text-align: right; }
+        th:nth-child(1), td:nth-child(1) { width: 20px; }
+        th:nth-child(2), td:nth-child(2) { width: 300px; }
+        th:nth-child(3), td:nth-child(3) { width: 50px; }
+        th:nth-child(4), td:nth-child(4) { width: 60px; }
+        th:nth-child(5), td:nth-child(5) { width: 80px; }
+        th:nth-child(6), td:nth-child(6) { width: 60px; }
+        th:nth-child(7), td:nth-child(7) { width: 100px; }
+        .header-content { width: 100%; text-align: center; }
+        .header-logo { float: left; width: 40px; }
+        .header-title { display: inline-block; font-size: 18px; font-weight: bold; }
+        @page { size: A4; margin: 10mm; border: 1px solid #000; padding: 0; }
+        table.items-table { page-break-inside: avoid; }
+        tr { page-break-inside: avoid; page-break-after: auto; }
+        .footer-container { position: absolute; bottom: 0mm; left: 0mm; right: 0mm; width: 190mm; page-break-before: auto; }
+        .footer-table td:first-child { border-left: none; }
+        .footer-table td:first-child, .footer-table td:last-child { border-right: none; border-bottom: none; }
+        .items-table th:first-child, .items-table td:first-child { border-left: none; }
+        .items-table th:last-child, .items-table td:last-child { border-right: none; }
+        .items-table th, .items-table td { border-top: 1px solid #000; border-bottom: 1px solid #000; }
+    </style>
+</head>
+<body>
+    <div class="estimate-container">
+        <table class="items-table">
+            <tr class="header-row">
+                <td colspan="7">
+                    <div class="header-content">
+                        <div class="header-logo">
+                            {% if logo_url %}
+                            <img src="{{ logo_url }}" alt="Shop Logo" style="max-width: 50px;">
+                            {% endif %}
+                        </div>
+                        <div class="header-title">
+                            Estimate<br>{{ shop.shop_name|upper }}
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            <tr class="details-row no-top-border">
+                <td colspan="4" class="party-details">
+                    <strong>Party Details:</strong><br>
+                    {{ invoice.customer.name }} - {{ invoice.customer.address|default:"" }}<br>
+                    <strong>Email:</strong> {{ invoice.customer.emailid }}
+                </td>
+                <td colspan="3" class="bill-details">
+                    <strong>Bill No:</strong> {{ invoice.bill_no }}<br>
+                    <strong>Date:</strong> {{ invoice.date }}<br>
+                    <strong>Transport:</strong> {{ invoice.transport|default:"NA" }}
+                </td>
+            </tr>
+            <tr class="no-top-border">
+                <th>S.N</th>
+                <th>Description of Goods</th>
+                <th>QTY</th>
+                <th>Unit</th>
+                <th>Rate</th>
+                <th>Disc %</th>
+                <th>Amount</th>
+            </tr>
+            {% for item in items %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ item.product.name }}</td>
+                    <td>{{ item.quantity|floatformat:2 }}</td>
+                    <td>{{ item.unit }}</td>
+                    <td>{{ item.rate|floatformat:2 }}</td>
+                    <td>{{ item.discount|floatformat:2 }}</td>
+                    <td>{{ item.amount|floatformat:2 }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+        <div class="footer-container">
+            <table class="footer-table">
+                <tr>
+                    <td colspan="4" class="total-qty">
+                        <strong>Total Qty:</strong> {{ invoice.total_quantity|floatformat:2 }} Units
+                    </td>
+                    <td colspan="3" class="total-amount">
+                        <strong>Add: Rounded Off(+)</strong> 0.35<br>
+                        <strong>Total:</strong> {{ invoice.total_price|floatformat:2 }}
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

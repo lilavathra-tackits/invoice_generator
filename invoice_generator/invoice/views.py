@@ -117,6 +117,7 @@ def shop_details(request):
             shop_details.address = request.POST.get('address', '').strip()
             shop_details.email = email
             shop_details.smtp_password = request.POST.get('smtp_password', '').strip()
+            shop_details.pdf_theme = request.POST.get('pdf_theme', 'theme1')
             
             if request.FILES.get('logo'):
                 shop_details.logo = request.FILES.get('logo')
@@ -896,7 +897,15 @@ def generate_pdf(request, invoice_id):
             'customer': customers,
         }
 
-        html_content = render_to_string('invoice_pdf.html', context)
+        # Pdf themes 
+        theme_map = {
+            'theme1': 'invoice/themes/invoice_pdf_theme1.html',
+            'theme2': 'invoice/themes/invoice_pdf_theme2.html',
+            'theme3': 'invoice/themes/invoice_pdf_theme3.html',
+        }
+        template_name = theme_map.get(shop.pdf_theme, 'invoice/invoice_pdf_theme1.html')  # default 1
+
+        html_content = render_to_string(template_name, context)
         pdf = HTML(string=html_content, base_url=request.build_absolute_uri('/')).write_pdf()
 
         response = HttpResponse(pdf, content_type='application/pdf')

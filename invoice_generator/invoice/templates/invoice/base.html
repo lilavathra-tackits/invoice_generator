@@ -307,10 +307,10 @@
         }
 
         /* New Color Classes from Palette */
-    .bg-purple {
-        background-color: #A05AFF !important;
-        color: #fff !important;
-    }
+        .bg-purple {
+            background-color: #A05AFF !important;
+            color: #fff !important;
+        }
     .bg-teal {
         background-color: #1BCFB4 !important;
         color: #fff !important;
@@ -403,6 +403,16 @@
             <li class="nav-item">
                 <a class="nav-link {% if request.path == '/add-employee/' %}active{% endif %}" href="{% url 'add_employee' %}">
                     <i class="bi bi-person-square"></i> Add Employee
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.path == '/reports/' %}active{% endif %}" href="{% url 'reports' %}">
+                    <i class="bi bi-bar-chart me-2"></i> Reports
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'dashboard' %}">
+                    <i class="bi bi-bar-chart me-2"></i> Payment Received
                 </a>
             </li>
             <li class="nav-item">

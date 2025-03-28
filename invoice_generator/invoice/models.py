@@ -59,6 +59,13 @@ class ShopDetails(models.Model):
     address = models.TextField()
     updated_at = models.DateField(auto_now=True)
     
+    PDF_THEMES = (
+        ('theme1', 'Classic (Theme 1)'),
+        ('theme2', 'Modern Minimalist (Theme 2)'),
+        ('theme3', 'Bold Corporate (Theme 3)'),
+    )
+    pdf_theme = models.CharField(max_length=20, choices=PDF_THEMES, default='theme1')
+    
     def __str__(self):
         return self.shop_name
 

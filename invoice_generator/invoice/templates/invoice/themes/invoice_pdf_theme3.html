@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice - {{ shop.shop_name }}</title>
+    <style>
+        body { font-family: Roboto, sans-serif; margin: 0; color: #1a1a1a; }
+        .invoice-container { width: 190mm; margin: 0; padding: 0; box-sizing: border-box; }
+        .header { background: linear-gradient(to right, #1e3c72, #2a5298); color: white; padding: 20px; text-align: center; }
+        .header img { max-width: 70px; vertical-align: middle; margin-right: 10px; }
+        .header h1 { font-size: 28px; margin: 0; display: inline-block; }
+        .details { padding: 15px; background-color: #f9f9f9; border-bottom: 2px solid #2a5298; font-size: 14px; }
+        .details-table { width: 100%; border-collapse: collapse; }
+        .details-table td { padding: 8px; vertical-align: top; }
+        table.items { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
+        th { background-color: #2a5298; color: white; padding: 12px; text-align: left; border: 1px solid #1e3c72; }
+        td { padding: 12px; border: 1px solid #ddd; }
+        .footer { padding: 15px; background-color: #f9f9f9; text-align: right; font-size: 14px; border-top: 2px solid #2a5298; }
+        .footer strong { color: #d4af37; }
+        @page { size: A4; margin: 10mm; }
+        tr { page-break-inside: avoid; page-break-after: auto; }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <div class="header">
+            {% if logo_url %}
+            <img src="{{ logo_url }}" alt="Shop Logo">
+            {% endif %}
+            <h1>{{ shop.shop_name|upper }} - Invoice</h1>
+        </div>
+        <div class="details">
+            <table class="details-table">
+                <tr>
+                    <td>
+                        <strong>Billed To:</strong><br>
+                        {{ invoice.customer.name }}<br>
+                        {{ invoice.customer.address|default:"" }}<br>
+                        Email: {{ invoice.customer.emailid }}
+                    </td>
+                    <td style="text-align: right;">
+                        <strong>Bill No:</strong> {{ invoice.bill_no }}<br>
+                        <strong>Date:</strong> {{ invoice.date }}<br>
+                        <strong>Transport:</strong> {{ invoice.transport|default:"NA" }}
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <table class="items">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Description</th>
+                    <th>Qty</th>
+                    <th>Unit</th>
+                    <th>Rate</th>
+                    <th>Discount</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ item.product.name }}</td>
+                    <td>{{ item.quantity|floatformat:2 }}</td>
+                    <td>{{ item.unit }}</td>
+                    <td>{{ item.rate|floatformat:2 }}</td>
+                    <td>{{ item.discount|floatformat:2 }}%</td>
+                    <td>₹{{ item.amount|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="footer">
+            <p><strong>Total Quantity:</strong> {{ invoice.total_quantity|floatformat:2 }} Units</p>
+            <p><strong>Total Amount:</strong> ₹{{ invoice.total_price|floatformat:2 }}</p>
+            {% comment %} <p>Thank you for your business! - {{ shop.shop_name }}</p> {% endcomment %}
+        </div>
+    </div>
+</body>
+</html>
