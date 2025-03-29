@@ -111,11 +111,13 @@ class InvoiceForm(forms.ModelForm):
 class CustomerForm(forms.ModelForm):
     class Meta:
         model = Customer
-        fields = ['name', 'address', 'emailid']
+        fields = ['name', 'address', 'emailid','notes']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 1}),
             'emailid': forms.EmailInput(attrs={'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 1}),
+            
         }
 
     def __init__(self, *args, **kwargs):

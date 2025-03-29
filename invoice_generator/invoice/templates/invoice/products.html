@@ -3,9 +3,9 @@
 {% block content %}
 <div class="container-fluid py-4">
     <!-- Header -->
-            <h1 class="fw-bold text-teal text-center mb-4">
-                <i class="bi bi-box-seam-fill me-2"></i>Products
-            </h1>
+    <h1 class="fw-bold text-teal text-center mb-4">
+        <i class="bi bi-box-seam-fill me-2"></i>Products
+    </h1>
 
     <!-- Add/Edit Product Form -->
     <div class="card shadow-sm mb-4">
@@ -30,6 +30,27 @@
                 </div>
                 <button type="submit" class="btn btn-primary me-2">Save Product</button>
                 <button type="button" class="btn btn-light" onclick="clearForm()">Clear</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Import Section -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title text-purple">
+                <i class="bi bi-upload me-2"></i>Bulk Import Products
+            </h5>
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="file" class="form-label">Upload CSV File</label>
+                    <input type="file" class="form-control" id="file" name="file" accept=".csv" required>
+                </div>
+                <input type="hidden" name="bulk_import" value="1">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="bi bi-upload"></i> Import
+                </button>
+                <small class="form-text text-muted">CSV must include 'name' and 'rate' columns; 'description' is optional.</small>
             </form>
         </div>
     </div>

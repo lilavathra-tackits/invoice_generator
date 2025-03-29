@@ -26,6 +26,8 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.mail import EmailMessage
 from django.core.mail.backends.smtp import EmailBackend
 
+
+
 # Function to signup (Admin only)
 def signup(request):
     """Handle user registration with email and username validation for admins."""
@@ -139,7 +141,7 @@ def shop_details(request):
 # Products view (Admin only)
 @login_required
 def products_view(request):
-    """Handle CRUD operations for products with search functionality (Admin only)."""
+    """Handle CRUD operations for products with search and bulk import functionality (Admin only)."""
     if request.user.role != 'admin':
         messages.error(request, "Only shop owners can manage products.")
         return redirect('dashboard')
@@ -164,6 +166,59 @@ def products_view(request):
                 messages.success(request, "Product deleted successfully.")
                 return redirect('products')
             
+            elif 'bulk_import' in request.POST:
+                # Handle bulk import
+                if 'file' not in request.FILES:
+                    messages.error(request, "No file uploaded.")
+                    return redirect('products')
+                
+                csv_file = request.FILES['file']
+                if not csv_file.name.endswith('.csv'):
+                    messages.error(request, "Please upload a CSV file.")
+                    return redirect('products')
+
+                decoded_file = csv_file.read().decode('utf-8').splitlines()
+                reader = csv.DictReader(decoded_file)
+                required_fields = {'name', 'rate'}
+
+                if not all(field in reader.fieldnames for field in required_fields):
+                    messages.error(request, f"CSV must contain {', '.join(required_fields)} columns.")
+                    return redirect('products')
+
+                success_count = 0
+                errors = []
+                for row_num, row in enumerate(reader, start=2):  # Start at 2 for header row
+                    try:
+                        name = bleach.clean(row['name'].strip())
+                        rate = float(row['rate'].strip())  # Convert to float for validation
+                        description = bleach.clean(row.get('description', '').strip()) or None
+
+                        if not name:
+                            errors.append(f"Row {row_num}: Name is required.")
+                            continue
+                        if Product.objects.filter(name=name, user=request.user).exists():
+                            errors.append(f"Row {row_num}: Product '{name}' already exists.")
+                            continue
+
+                        Product.objects.create(
+                            user=request.user,
+                            name=name,
+                            rate=rate,
+                            description=description
+                        )
+                        success_count += 1
+                    except ValueError as e:
+                        errors.append(f"Row {row_num}: Invalid rate value - {str(e)}")
+                    except Exception as e:
+                        errors.append(f"Row {row_num}: Error - {str(e)}")
+
+                if success_count > 0:
+                    messages.success(request, f"Successfully imported {success_count} products.")
+                if errors:
+                    messages.error(request, "Some products failed to import:\n" + "\n".join(errors))
+                return redirect('products')
+
+            # Single product form handling
             product_id = request.POST.get('product_id', None)
             if product_id:
                 product = get_object_or_404(Product, id=product_id, user=request.user)
@@ -177,7 +232,7 @@ def products_view(request):
                 messages.success(request, "Product saved successfully.")
                 return redirect('products')
             else:
-                messages.error(request, "Error saving product. Please check the form.")
+                messages.error(request, "Error saving product: " + str(form.errors))
         else:
             form = ProductForm()
 
@@ -187,12 +242,11 @@ def products_view(request):
             'shop_details': shop_details,
             'search_query': search_query,
         })
-    except ValidationError as e:
-        messages.error(request, f"Invalid input: {str(e)}")
+    except Exception as e:
+        messages.error(request, f"Error: {str(e)}")
         return redirect('products')
-    except DatabaseError as e:
-        messages.error(request, f"Database error: {str(e)}")
-        return redirect('products')
+
+
 
 # All invoices view (Both admin and employee)
 def all_invoices(request):
