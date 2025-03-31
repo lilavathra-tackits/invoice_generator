@@ -3,6 +3,8 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.utils import timezone
 from django.db import transaction
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
+
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, username, password=None, **extra_fields):
@@ -74,10 +76,29 @@ class Product(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
     rate = models.DecimalField(max_digits=10, decimal_places=2)
+    stock_quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Current stock level")
+    minimum_stock_level = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Minimum stock level for alerts")
 
     def __str__(self):
         return self.name
 
+    def has_sufficient_stock(self, quantity):
+        """Check if there’s enough stock for a given quantity."""
+        return self.stock_quantity >= quantity
+
+    def reduce_stock(self, quantity):
+        """Reduce stock by the specified quantity."""
+        if self.has_sufficient_stock(quantity):
+            self.stock_quantity -= quantity
+            self.save()
+            return True
+        return False
+
+    def add_stock(self, quantity):
+        """Add stock to the product."""
+        self.stock_quantity += quantity
+        self.save()
+        
 class Customer(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, limit_choices_to={'role': 'admin'})
     created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='created_customers')
@@ -165,6 +186,12 @@ class Invoice(models.Model):
             self.status = 'overdue'
 
         super().save(*args, **kwargs)
+        
+    def delete(self, *args, **kwargs):
+        # Restore stock for all items before deleting
+        for item in self.items.all():
+            item.product.add_stock(item.quantity)
+        super().delete(*args, **kwargs)
 
     def __str__(self):
         return f"Invoice {self.bill_no} for {self.customer_name or self.customer.name}"
@@ -178,9 +205,31 @@ class InvoiceItem(models.Model):
     discount = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
+    # def save(self, *args, **kwargs):
+    #     self.rate = self.product.rate
+    #     self.amount = self.quantity * self.rate * (1 - self.discount / 100)
+    #     super().save(*args, **kwargs)
     def save(self, *args, **kwargs):
-        self.rate = self.product.rate
+        # Set rate from product if not provided
+        if not self.rate:
+            self.rate = self.product.rate
+
+        # Calculate amount
         self.amount = self.quantity * self.rate * (1 - self.discount / 100)
+
+        # Check and reduce stock only on creation or if quantity changes
+        if not self.pk:  # New item
+            if not self.product.reduce_stock(self.quantity):
+                raise ValidationError(f"Insufficient stock for {self.product.name}. Available: {self.product.stock_quantity}")
+        else:  # Existing item, update stock if quantity changed
+            original = InvoiceItem.objects.get(pk=self.pk)
+            quantity_diff = self.quantity - original.quantity
+            if quantity_diff > 0:
+                if not self.product.reduce_stock(quantity_diff):
+                    raise ValidationError(f"Insufficient stock for {self.product.name}. Available: {self.product.stock_quantity}")
+            elif quantity_diff < 0:
+                self.product.add_stock(-quantity_diff)  # Add back the difference
+
         super().save(*args, **kwargs)
 
 class InvoiceSequence(models.Model):

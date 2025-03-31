@@ -6,16 +6,22 @@ from .models import Invoice, InvoiceItem, Product, Customer
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        fields = ['name', 'description', 'rate']
+        fields = ['name', 'description', 'rate', 'stock_quantity', 'minimum_stock_level']
         widgets = {
             'description': forms.Textarea(attrs={'rows': 3}),
         }
 
-    def clean_rate(self):
-        rate = self.cleaned_data['rate']
-        if rate < 0:
-            raise forms.ValidationError("Rate cannot be negative.")
-        return rate
+    def clean_stock_quantity(self):
+        stock = self.cleaned_data['stock_quantity']
+        if stock < 0:
+            raise forms.ValidationError("Stock quantity cannot be negative.")
+        return stock
+
+    def clean_minimum_stock_level(self):
+        min_stock = self.cleaned_data['minimum_stock_level']
+        if min_stock < 0:
+            raise forms.ValidationError("Minimum stock level cannot be negative.")
+        return min_stock
 
 
 class InvoiceItemForm(forms.ModelForm):

@@ -25,6 +25,7 @@ from django.urls import reverse
 from django.contrib.auth.password_validation import validate_password
 from django.core.mail import EmailMessage
 from django.core.mail.backends.smtp import EmailBackend
+from decimal import Decimal
 
 
 
@@ -165,6 +166,20 @@ def products_view(request):
                 product.delete()
                 messages.success(request, "Product deleted successfully.")
                 return redirect('products')
+
+            elif 'add_stock' in request.POST:
+                product_id = request.POST.get('product_id')
+                stock_to_add = request.POST.get('stock_quantity', 0)
+                try:
+                    stock_to_add = Decimal(stock_to_add)
+                    if stock_to_add <= 0:
+                        raise ValueError("Stock quantity must be positive.")
+                    product = get_object_or_404(Product, id=product_id, user=request.user)
+                    product.add_stock(stock_to_add)
+                    messages.success(request, f"Added {stock_to_add} to {product.name}'s stock.")
+                except (ValueError, ValidationError) as e:
+                    messages.error(request, f"Error adding stock: {str(e)}")
+                return redirect('products')
             
             elif 'bulk_import' in request.POST:
                 # Handle bulk import
@@ -236,11 +251,16 @@ def products_view(request):
         else:
             form = ProductForm()
 
+        low_stock_products = products.filter(stock_quantity__lte=models.F('minimum_stock_level'))
+        if low_stock_products.exists():
+            messages.warning(request, "Some products are below minimum stock levels.")
+
         return render(request, 'invoice/products.html', {
             'products': products,
             'form': form,
             'shop_details': shop_details,
             'search_query': search_query,
+            'low_stock_products': low_stock_products,
         })
     except Exception as e:
         messages.error(request, f"Error: {str(e)}")
@@ -434,7 +454,6 @@ def invoice_view(request, invoice_id=None):
 # Get product rate (Both admin and employee)
 @login_required
 def get_product_rate(request, product_id):
-    """Fetch product rate via AJAX."""
     try:
         if request.user.role == 'employee':
             shop_owner = request.user.shop_owner
@@ -443,8 +462,11 @@ def get_product_rate(request, product_id):
             product = Product.objects.get(id=product_id, user=shop_owner)
         else:
             product = Product.objects.get(id=product_id, user=request.user)
-        return JsonResponse({'rate': float(product.rate)})
-    except ObjectDoesNotExist:
+        return JsonResponse({
+            'rate': float(product.rate),
+            'stock_quantity': float(product.stock_quantity)
+        })
+    except Product.DoesNotExist:
         return JsonResponse({'error': 'Product not found'}, status=404)
     except ValueError as e:
         return JsonResponse({'error': f"Invalid product ID: {str(e)}"}, status=400)
